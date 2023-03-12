@@ -19,21 +19,27 @@ class TableViewExample: UIViewController {
         self.view.addSubview(bodyView)
         
         let tableView = SampleTableView(frame: self.view.frame, style: UITableView.Style.plain)
-
+        
         //🌟 Usage
-        let tableViewWrapper = PullToBounceWrapper(scrollView: tableView)
+        let tableViewWrapper = PullToBounceWrapper(scrollView: tableView,
+                                                   ballSize: 16,
+                                                   moveUpDuration: 0.35,
+                                                   pullDistance: 32,
+                                                   bendDistance: 48,
+                                                   ballColor: .white,
+                                                   spinnerColor: .white)
         bodyView.addSubview(tableViewWrapper)
-
-        tableViewWrapper.didPullToRefresh = {
+        
+        tableViewWrapper.onRefresh = {
             _ = Timer.schedule(delay: 2) { timer in
                 tableViewWrapper.stopLoadingAnimation()
             }
         }
-
+        
         makeMock()
     }
-
-    func makeMock() {
+    
+    @objc func makeMock() {
         let headerView = UIView()
         headerView.frame = CGRect(x: 0, y: 0, width: view.frame.width, height: 64)
         headerView.backgroundColor = UIColor.lightBlue
@@ -46,7 +52,7 @@ class TableViewExample: UIViewController {
         headerLine.center = CGPoint(x: headerView.frame.center.x, y: 20 + 44/2)
         headerView.addSubview(headerLine)
     }
-
+    
     override var preferredStatusBarStyle : UIStatusBarStyle {
         return .lightContent
     }

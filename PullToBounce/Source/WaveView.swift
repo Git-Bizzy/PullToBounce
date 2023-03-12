@@ -1,6 +1,6 @@
 //
-//  PullToWaveView.swift
-//  BezierPathAnimation
+//  WaveView.swift
+//  PullToBounce
 //
 //  Created by Takuya Okamoto on 2015/08/11.
 //  Copyright (c) 2015年 Uniface. All rights reserved.
@@ -8,61 +8,65 @@
 
 import UIKit
 
-class WaveView: UIView, UIGestureRecognizerDelegate, CAAnimationDelegate {
-
-    var didEndPull: (()->())?
-    var bounceDuration:CFTimeInterval!
-    var waveLayer:CAShapeLayer!
-
-    init(frame:CGRect, bounceDuration:CFTimeInterval = 0.4, color:UIColor = UIColor.white) {
+class WaveView: UIView {
+    @objc var didEndPull: () -> Void = {}
+    @objc private var waveLayer: CAShapeLayer
+    @objc private let bounceDuration: CFTimeInterval
+    @objc private let color: UIColor
+    
+    @objc init(frame: CGRect, bounceDuration: CFTimeInterval, color: UIColor) {
         self.bounceDuration = bounceDuration
+        self.waveLayer = CAShapeLayer() // CAShapeLayer(layer: self.layer)
+        self.color = color
         super.init(frame:frame)
-
-        waveLayer = CAShapeLayer(layer: self.layer)
-        waveLayer.lineWidth = 0
-        waveLayer.path = wavePath(amountX: 0.0, amountY: 0.0)
-        waveLayer.strokeColor = color.cgColor
-        waveLayer.fillColor = color.cgColor
-        self.layer.addSublayer(waveLayer)
+        setup()
     }
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func wave(_ y:CGFloat) {
-        self.waveLayer.path = self.wavePath(amountX: 0, amountY: y)
+    private func setup() {
+        waveLayer.lineWidth = 0
+        waveLayer.path = wavePath(amountX: 0.0, amountY: 0.0)
+        waveLayer.strokeColor = color.cgColor
+        waveLayer.fillColor = color.cgColor
+        layer.addSublayer(waveLayer)
     }
     
-    func didRelease(amountX: CGFloat,amountY: CGFloat) {
-        self.boundAnimation(positionX: amountX, positionY: amountY)
-        didEndPull?()
+    @objc func setWaveHeight(_ height: CGFloat) {
+        waveLayer.path = wavePath(amountX: 0, amountY: height)
     }
     
-    func boundAnimation(positionX: CGFloat,positionY: CGFloat) {
-        self.waveLayer.path = self.wavePath(amountX: 0, amountY: 0)
+    @objc func didRelease(amountX: CGFloat, amountY: CGFloat) {
+        boundAnimation(positionX: amountX, positionY: amountY)
+        didEndPull()
+    }
+    
+    @objc func boundAnimation(positionX: CGFloat, positionY: CGFloat) {
+        waveLayer.path = wavePath(amountX: 0, amountY: 0)
         let bounce = CAKeyframeAnimation(keyPath: "path")
         bounce.timingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeIn)
         let values = [
-            self.wavePath(amountX: positionX, amountY: positionY),
-            self.wavePath(amountX: -(positionX * 0.7), amountY: -(positionY * 0.7)),
-            self.wavePath(amountX: positionX * 0.4, amountY: positionY * 0.4),
-            self.wavePath(amountX: -(positionX * 0.3), amountY: -(positionY * 0.3)),
-            self.wavePath(amountX: positionX * 0.15, amountY: positionY * 0.15),
-            self.wavePath(amountX: 0.0, amountY: 0.0)
+            wavePath(amountX: positionX,            amountY: positionY),
+            wavePath(amountX: -(positionX * 0.7),   amountY: -(positionY * 0.7)),
+            wavePath(amountX: positionX * 0.4,      amountY: positionY * 0.4),
+            wavePath(amountX: -(positionX * 0.3),   amountY: -(positionY * 0.3)),
+            wavePath(amountX: positionX * 0.15,     amountY: positionY * 0.15),
+            wavePath(amountX: 0.0,                  amountY: 0.0)
         ]
         bounce.values = values
         bounce.duration = bounceDuration
         bounce.isRemovedOnCompletion = true
         bounce.fillMode = CAMediaTimingFillMode.forwards
         bounce.delegate = self
-        self.waveLayer.add(bounce, forKey: "return")
+        waveLayer.add(bounce, forKey: "return")
     }
     
-    func wavePath(amountX:CGFloat, amountY:CGFloat) -> CGPath {
-        let w = self.frame.width
-        let h = self.frame.height
-        let centerY:CGFloat = 0
+    @objc func wavePath(amountX: CGFloat, amountY: CGFloat) -> CGPath {
+        let w = frame.width
+        let h = frame.height
+        let centerY: CGFloat = 0
         let bottomY = h
         
         let topLeftPoint = CGPoint(x: 0, y: centerY)
@@ -76,9 +80,12 @@ class WaveView: UIView, UIGestureRecognizerDelegate, CAAnimationDelegate {
         bezierPath.addLine(to: topLeftPoint)
         bezierPath.addQuadCurve(to: topRightPoint, controlPoint: topMidPoint)
         bezierPath.addLine(to: bottomRightPoint)
+        
         return bezierPath.cgPath
     }
-    
+}
+
+extension WaveView: CAAnimationDelegate {
     func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
         waveLayer.path = wavePath(amountX: 0.0, amountY: 0.0)
     }
